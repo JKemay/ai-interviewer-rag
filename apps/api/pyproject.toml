@@ -7,6 +7,11 @@ dependencies = [
     "fastapi>=0.120",
     "uvicorn[standard]>=0.34",
     "pydantic-settings>=2.7",
+    "sqlalchemy[asyncio]>=2.0.36",
+    "alembic>=1.14",
+    "psycopg[binary,pool]>=3.2",
+    "pgvector>=0.3.6",
+    "argon2-cffi>=23.1",
 ]
 
 [dependency-groups]
@@ -24,6 +29,7 @@ dev = [
 
 [project.scripts]
 export-openapi = "app.openapi_export:main"
+bootstrap-db-roles = "app.db.bootstrap:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -63,6 +69,11 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 # Tests legitimately use `assert`, which bandit flags as S101.
 "tests/**" = ["S101"]
+# Migrations interpolate role and table names into DDL because Postgres does
+# not accept bind parameters for identifiers. Migration bodies are static code
+# that never sees runtime input, and each file asserts its identifiers match a
+# strict pattern at import. S608 has nothing left to catch here.
+"migrations/versions/**" = ["S608"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "parents"
