@@ -3,7 +3,11 @@ name = "ai-interviewer-api"
 version = "0.1.0"
 description = "FastAPI service and ingestion worker for the AI Interviewer"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "fastapi>=0.120",
+    "uvicorn[standard]>=0.34",
+    "pydantic-settings>=2.7",
+]
 
 [dependency-groups]
 # PEP 735 dependency group. `uv sync` installs these by default; production
@@ -15,7 +19,11 @@ dev = [
     "pytest-asyncio>=0.24",
     "pytest-cov>=6.0",
     "pre-commit>=4.0",
+    "httpx2>=2.12",         # TestClient transport; starlette deprecates plain httpx
 ]
+
+[project.scripts]
+export-openapi = "app.openapi_export:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -73,6 +81,7 @@ typeCheckingMode = "strict"
 venvPath = "."
 venv = ".venv"
 reportMissingTypeStubs = false
+
 
 # ---------------------------------------------------------------------------
 # Pytest
