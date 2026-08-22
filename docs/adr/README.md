@@ -44,4 +44,5 @@ What else was on the table and why it lost.
 
 | ADR | Title | Status |
 |---|---|---|
-| _none yet_ | | |
+| [0001](0001-technology-stack.md) | Technology stack | Accepted |
+| [0002](0002-job-lifecycle.md) | Background job lifecycle | Accepted |
