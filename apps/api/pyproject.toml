@@ -1,0 +1,99 @@
+[project]
+name = "ai-interviewer-api"
+version = "0.1.0"
+description = "FastAPI service and ingestion worker for the AI Interviewer"
+requires-python = ">=3.13"
+dependencies = []
+
+[dependency-groups]
+# PEP 735 dependency group. `uv sync` installs these by default; production
+# images install with `--no-dev` so none of this ships.
+dev = [
+    "ruff>=0.14",
+    "pyright>=1.1.400",
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "pre-commit>=4.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/app"]
+
+# ---------------------------------------------------------------------------
+# Ruff — linter and formatter.
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # import sorting
+    "UP",       # pyupgrade — keeps syntax current with the target version
+    "B",        # bugbear — real bug patterns, not style
+    "SIM",      # simplifications
+    "C4",       # comprehension correctness
+    "N",        # PEP 8 naming
+    "ASYNC",    # blocking calls inside async functions
+    "S",        # bandit security rules
+    "PTH",      # prefer pathlib over os.path
+    "TID",      # tidy imports (no relative imports across packages)
+    "RUF",      # ruff's own rules
+]
+ignore = [
+    "E501",  # line length is the formatter's job, not the linter's
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests legitimately use `assert`, which bandit flags as S101.
+"tests/**" = ["S101"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "parents"
+
+# ---------------------------------------------------------------------------
+# Pyright — type checking in strict mode.
+#
+# Strict from day one is deliberate: retrofitting strict typing onto an
+# existing codebase is miserable, and every type error caught here is a bug
+# that would otherwise surface at runtime in a request handler.
+# ---------------------------------------------------------------------------
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.13"
+typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"
+reportMissingTypeStubs = false
+
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# `auto` treats every async test as an asyncio test without a per-test marker.
+# The whole codebase is async, so requiring the marker would be pure noise.
+asyncio_mode = "auto"
+addopts = [
+    "--strict-markers",   # a typo'd marker fails instead of silently doing nothing
+    "--strict-config",
+    "-ra",                # summarize non-passing outcomes
+]
+
+[tool.coverage.run]
+source = ["src/app"]
+branch = true
+
+[tool.coverage.report]
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
