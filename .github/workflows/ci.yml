@@ -31,6 +31,36 @@ jobs:
     defaults:
       run:
         working-directory: apps/api
+
+    # The same image the Compose stack runs. RLS, pgvector and tsvector do not
+    # exist in SQLite, so a substitute database would verify a system we never
+    # ship.
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.6-pg17-trixie
+        env:
+          POSTGRES_USER: ai_interviewer
+          POSTGRES_PASSWORD: ci-throwaway-postgres
+          POSTGRES_DB: ai_interviewer
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ai_interviewer -d ai_interviewer"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    # Throwaway credentials for a container that lives for one job on an
+    # ephemeral runner with no inbound network. Deliberately literal rather than
+    # repository secrets: nothing here grants access to anything, and putting
+    # them in `secrets` would imply otherwise.
+    env:
+      MIGRATION_DATABASE_URL: postgresql+psycopg://ai_interviewer:ci-throwaway-postgres@localhost:5432/ai_interviewer
+      DATABASE_URL: postgresql+psycopg://ai_app:ci-throwaway-app@localhost:5432/ai_interviewer
+      WORKER_DATABASE_URL: postgresql+psycopg://ai_worker:ci-throwaway-worker@localhost:5432/ai_interviewer
+      DB_APP_PASSWORD: ci-throwaway-app
+      DB_WORKER_PASSWORD: ci-throwaway-worker
+
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -53,6 +83,15 @@ jobs:
 
       - name: Type check
         run: uv run pyright
+
+      # Migrations run as the table-owning role, exactly as they will against
+      # Neon. The two runtime roles are created NOLOGIN by the migration and
+      # given credentials here, mirroring the local bootstrap step.
+      - name: Migrate
+        run: uv run alembic upgrade head
+
+      - name: Grant login to runtime roles
+        run: uv run bootstrap-db-roles
 
       - name: Tests
         run: uv run pytest --cov=app --cov-fail-under=80

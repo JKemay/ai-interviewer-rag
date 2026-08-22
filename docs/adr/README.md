@@ -46,3 +46,4 @@ What else was on the table and why it lost.
 |---|---|---|
 | [0001](0001-technology-stack.md) | Technology stack | Accepted |
 | [0002](0002-job-lifecycle.md) | Background job lifecycle | Accepted |
+| [0003](0003-database-roles-and-tenant-isolation.md) | Database roles and tenant isolation | Accepted |
