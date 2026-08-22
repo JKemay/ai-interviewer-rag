@@ -1,0 +1,16 @@
+# Pinned action SHAs are only safe if something updates them. Without this,
+# pinning trades a supply-chain risk for a stale-dependency risk.
+#
+# Python and npm ecosystems are added in Phase 8 alongside the rest of the
+# scanning setup.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]

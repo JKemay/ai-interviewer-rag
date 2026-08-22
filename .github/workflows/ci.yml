@@ -1,0 +1,109 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Actions are pinned to commit SHAs rather than tags. A tag is mutable: whoever
+# controls the action's repository can repoint `v7` at new code, which executes
+# inside our runner with our token. The trailing comment records the human
+# version so Dependabot can bump both together.
+#
+# The default GITHUB_TOKEN is read-only here; no job in this workflow writes to
+# the repository.
+permissions:
+  contents: read
+
+# A new push to the same branch supersedes the previous run. Without this, a
+# branch pushed three times in a minute runs CI three times concurrently.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: "0.11.26"
+
+jobs:
+  api:
+    name: API — lint, types, tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: apps/api/uv.lock
+
+      # --frozen fails if uv.lock is out of date with pyproject.toml, rather
+      # than silently resolving something different from what was reviewed.
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Lint
+        run: uv run ruff check --output-format=github .
+
+      - name: Format
+        run: uv run ruff format --check .
+
+      - name: Type check
+        run: uv run pyright
+
+      - name: Tests
+        run: uv run pytest --cov=app --cov-fail-under=80
+
+  openapi:
+    name: OpenAPI schema is current
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+          cache-dependency-glob: apps/api/uv.lock
+
+      - name: Install dependencies
+        working-directory: apps/api
+        run: uv sync --frozen
+
+      - name: Regenerate schema
+        working-directory: apps/api
+        run: uv run export-openapi
+
+      # The committed schema is the contract the frontend's TypeScript client is
+      # generated from. If a response model changes and this file is not
+      # regenerated, the frontend types silently describe an API that no longer
+      # exists. Failing here forces the two to move together.
+      - name: Fail if the committed schema has drifted
+        run: |
+          if ! git diff --exit-code --stat apps/api/openapi.json; then
+            echo "::error::openapi.json is stale. Run 'uv run export-openapi' in apps/api and commit the result."
+            git diff apps/api/openapi.json
+            exit 1
+          fi
+
+  image:
+    name: Container image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+
+      # Built but never pushed. This catches a broken Dockerfile in review
+      # rather than at deploy time; publishing is Phase 9's job.
+      - name: Build
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        with:
+          context: apps/api
+          target: runtime
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
