@@ -77,6 +77,40 @@ services:
       "
     restart: "no"
 
+  api:
+    build:
+      context: ./apps/api
+      target: runtime
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      # Overrides the host-facing values in .env: inside the Compose network
+      # the services are reachable by service name, not localhost.
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      S3_ENDPOINT_URL: http://minio:9000
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    volumes:
+      # Source is mounted read-only for hot reload. The virtualenv stays baked
+      # into the image, so the container never depends on a host-built venv.
+      - ./apps/api/src:/app/src:ro
+    command:
+      - uvicorn
+      - app.main:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --reload
+      - --reload-dir
+      - /app/src
+    restart: unless-stopped
+
 volumes:
   postgres-data:
   minio-data:

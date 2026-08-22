@@ -1,0 +1,15 @@
+# The build context should contain source only. Copying .venv in would ship a
+# macOS-built virtualenv into a Linux image, and .git can carry secrets from
+# history even when the working tree is clean.
+.venv/
+.git/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.env
+.env.*
+tests/
