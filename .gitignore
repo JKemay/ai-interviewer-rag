@@ -1,0 +1,64 @@
+# ---------------------------------------------------------------------------
+# Secrets — nothing in these patterns may ever reach the remote.
+# `.env.example` is the committed template; real `.env*` files never are.
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+secrets/
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+dist/
+build/
+
+# ---------------------------------------------------------------------------
+# Node / Next.js
+# ---------------------------------------------------------------------------
+node_modules/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+.vercel/
+npm-debug.log*
+yarn-error.log*
+
+# ---------------------------------------------------------------------------
+# Local infrastructure state (Docker volumes, object storage, model caches)
+# These are reproducible; committing them would bloat the repo and can leak
+# ingested document contents.
+# ---------------------------------------------------------------------------
+.data/
+.minio/
+.fastembed_cache/
+*.sqlite3
+
+# ---------------------------------------------------------------------------
+# Editors / OS
+# ---------------------------------------------------------------------------
+.DS_Store
+.idea/
+.vscode/
+
+# ---------------------------------------------------------------------------
+# Claude Code — shared settings are committed, machine-local ones are not.
+# ---------------------------------------------------------------------------
+.claude/settings.local.json
