@@ -1,0 +1,26 @@
+# Fast, local-only checks that run before every commit.
+#
+# This is a convenience net, not the enforcement boundary — CI is authoritative,
+# because hooks can be bypassed with `--no-verify` and aren't installed on a
+# fresh clone. Anything that must not reach main belongs in the CI workflow too.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=512]
+      # Catches a private key pasted into a file before it becomes git history,
+      # where removing it means rewriting every downstream commit.
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.4
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
